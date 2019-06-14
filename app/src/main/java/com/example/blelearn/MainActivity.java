@@ -32,6 +32,10 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private BluetoothLeScanner bluetoothLeScanner;
+    private static final java.util.UUID UUID_SERVICE = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");//蓝牙串口的通用UUID,UUID是什么东西
+    private static final java.util.UUID UUID_CHARACTERISTIC_READ = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FC");
+    private static final java.util.UUID UUID_CHARACTERISTIC_WRITE = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FD");
+    private static final java.util.UUID UUID_DESCRIPTOR = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FE");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
                            @Override
                            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                                super.onServicesDiscovered(gatt, status);
-                               gatt.getServices().get(0).getCharacteristics().get(0).getValue();
+                              // gatt.getServices().get(0).getCharacteristics().get(0).getValue();
+                               gatt.getService(UUID_SERVICE).getCharacteristic(UUID_CHARACTERISTIC_READ).getValue();
                                Log.d(TAG, "onServicesDiscovered: 连接成功");
                            }
 
