@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -59,36 +60,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         }
-//        SearchRequest request = new SearchRequest.Builder()
-//                .searchBluetoothLeDevice(3000, 3)   // 先扫BLE设备3次，每次3s
-//               // .searchBluetoothClassicDevice(5000) // 再扫经典蓝牙5s
-//             //   .searchBluetoothLeDevice(2000)      // 再扫BLE设备2s
-//                .build();
-//        BluetoothClient mClient = new BluetoothClient(this);
-//        mClient.search(request, new SearchResponse() {
-//            @Override
-//            public void onSearchStarted() {
-//                Log.d(TAG, "onSearchStarted: ");
-//            }
-//
-//            @Override
-//            public void onDeviceFounded(SearchResult device) {
-//                Beacon beacon = new Beacon(device.scanRecord);
-//                BluetoothLog.v(String.format("beacon for %s\n%s", device.getAddress(), beacon.toString()));
-//                Log.d(TAG, "onDeviceFounded: scanning");
-//            }
-//
-//            @Override
-//            public void onSearchStopped() {
-//                Log.d(TAG, "onSearchStopped: ");
-//            }
-//
-//            @Override
-//            public void onSearchCanceled() {
-//                Log.d(TAG, "onSearchCanceled: ");
-//            }
-//        });
-
     }
 
     final BluetoothAdapter.LeScanCallback callback = new BluetoothAdapter.LeScanCallback() {
@@ -109,13 +80,26 @@ public class MainActivity extends AppCompatActivity {
                            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
                                super.onConnectionStateChange(gatt, status, newState);
                                gatt.discoverServices();
-                               Log.d(TAG, "onConnectionStateChange: status="+status);
+                               Log.d(TAG, "onConnectionStateChange: 判断是否链接BLE设备成功 status="+status);
                            }
 
                            @Override
                            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                                super.onServicesDiscovered(gatt, status);
+                               gatt.getServices().get(0).getCharacteristics().get(0).getValue();
                                Log.d(TAG, "onServicesDiscovered: 连接成功");
+                           }
+
+                           @Override
+                           public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                               super.onCharacteristicRead(gatt, characteristic, status);
+                               Log.d(TAG, "onCharacteristicRead: 收到BLE设备发送的数据 characteristic="+characteristic.getValue().length);
+                           }
+
+                           @Override
+                           public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                               super.onCharacteristicWrite(gatt, characteristic, status);
+                               Log.d(TAG, "onCharacteristicWrite: ");
                            }
                        });
                 }
