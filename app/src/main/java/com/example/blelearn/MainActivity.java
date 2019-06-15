@@ -1,32 +1,36 @@
 package com.example.blelearn;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
-import com.inuker.bluetooth.library.BluetoothClient;
-import com.inuker.bluetooth.library.beacon.Beacon;
-import com.inuker.bluetooth.library.search.SearchRequest;
-import com.inuker.bluetooth.library.search.SearchResult;
-import com.inuker.bluetooth.library.search.response.SearchResponse;
-import com.inuker.bluetooth.library.utils.BluetoothLog;
+import com.example.blelearn.adapter.RCAdapter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -36,82 +40,131 @@ public class MainActivity extends AppCompatActivity {
     private static final java.util.UUID UUID_CHARACTERISTIC_READ = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FC");
     private static final java.util.UUID UUID_CHARACTERISTIC_WRITE = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FD");
     private static final java.util.UUID UUID_DESCRIPTOR = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FE");
+    private BluetoothAdapter bluetoothAdapter;
+    private List<BluetoothDevice> deviceList = new ArrayList<>();
+    private RCAdapter rcAdapter;
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //==位置权限校验==
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {//如果该权限没有获得权限
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
         }
-
-        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {//打开蓝牙失败
-            Log.d(TAG, "onCreate: 打开蓝牙失败");
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, 1);
-        } else {//已经打开蓝牙
-            Log.d(TAG, "onCreate: 蓝牙已经打开成功 bluetoothAdapter=" + bluetoothAdapter);
-            boolean ifStartLeScan = bluetoothAdapter.startLeScan(callback);
-            if (ifStartLeScan) {
-                Log.d(TAG, "onCreate: 开始扫描");
-            } else {
-                Log.d(TAG, "onCreate: 禁止扫描");
-            }
-//            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-//            bluetoothLeScanner.startScan(scanCallback);
-
-
-        }
+        initView();
     }
 
+    /**
+     * 初始化View
+     */
+    private void initView() {
+        Button startScanBtn = (Button) findViewById(R.id.mainactivity_startscan_btn);
+        startScanBtn.setOnClickListener(clickListener);
+
+        recyclerView = (RecyclerView) findViewById(R.id.mainactivity_bledevice_rc);
+        rcAdapter = new RCAdapter(deviceList);
+        rcAdapter.setItemClickListener(itemClickListenr);
+        recyclerView.addItemDecoration(new DividerItemDecoration(MainActivity.this, DividerItemDecoration.VERTICAL));
+        recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+        recyclerView.setAdapter(rcAdapter);
+
+    }
+
+
+    /**
+     * 点击监听
+     */
+    private RCAdapter.ItemClickListenr itemClickListenr = new RCAdapter.ItemClickListenr() {
+        @Override
+        public void onClick(View view, int positon) {
+            if (bluetoothAdapter != null) {
+                Log.d(TAG, "onClick: 开始连接BLE设备停止扫描");
+                bluetoothAdapter.stopLeScan(callback);
+            }
+            Intent intent=new Intent(MainActivity.this, DataControlActivity.class);
+            intent.putExtra("key_bluetoothdevice",rcAdapter.getmDatas().get(positon));
+            startActivity(intent);
+//            RCAdapter rcAdapter = (RCAdapter) recyclerView.getAdapter();
+         //   BluetoothGatt bluetoothGatt = rcAdapter.getmDatas().get(positon).connectGatt(MainActivity.this, false, new MyBluetoothGattCallback());
+            //设置自动重连反而没有MyBluetoothGattCallback回调
+        }
+    };
+
+    private View.OnClickListener clickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.mainactivity_startscan_btn:
+                    BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+                    bluetoothAdapter = bluetoothManager.getAdapter();
+                    if (bluetoothAdapter == null) {
+                        Toast.makeText(MainActivity.this, "设备不支持蓝牙", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "onCreate: 设备不支持蓝牙");
+                    } else {
+                        if (!bluetoothAdapter.isEnabled()) {//蓝牙未打开
+                            Toast.makeText(MainActivity.this, "蓝牙未打开,请打开蓝牙", Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "onCreate: 蓝牙未打开,请打开蓝牙");
+                            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                            startActivityForResult(enableBtIntent, 1);
+                        } else {//已经打开蓝牙
+                            Log.d(TAG, "onCreate: 蓝牙已经打开成功 bluetoothAdapter=" + bluetoothAdapter);
+                            //     bluetoothAdapter.
+                            boolean ifStartLeScan = bluetoothAdapter.startLeScan(callback);
+                            if (ifStartLeScan) {
+                                Toast.makeText(MainActivity.this, "BLE已经打开成功,开始扫描", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "onCreate: 开始扫描");
+                            } else {
+                                Log.d(TAG, "onCreate: 禁止扫描");
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+    };
+
+    /**
+     *搜索BLE设备结果
+     */
     final BluetoothAdapter.LeScanCallback callback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
             String deviceName = device.getName();
-            String deviceUuid = device.getName();
+            String deviceHardwareAddress = device.getAddress();
+            //      Log.d(TAG, "onLeScan: CuurentThread=" + (Looper.myLooper() == Looper.getMainLooper()));
             if (deviceName != null) {
-                //todo 去重
-                if(deviceName.equals("111")){
-                       device.connectGatt(MainActivity.this, true, new BluetoothGattCallback() {
-                           @Override
-                           public void onPhyUpdate(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-                               super.onPhyUpdate(gatt, txPhy, rxPhy, status);
-                           }
-
-                           @Override
-                           public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                               super.onConnectionStateChange(gatt, status, newState);
-                               gatt.discoverServices();
-                               Log.d(TAG, "onConnectionStateChange: 判断是否链接BLE设备成功 status="+status);
-                           }
-
-                           @Override
-                           public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                               super.onServicesDiscovered(gatt, status);
-                              // gatt.getServices().get(0).getCharacteristics().get(0).getValue();
-                               gatt.getService(UUID_SERVICE).getCharacteristic(UUID_CHARACTERISTIC_READ).getValue();
-                               Log.d(TAG, "onServicesDiscovered: 连接成功");
-                           }
-
-                           @Override
-                           public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                               super.onCharacteristicRead(gatt, characteristic, status);
-                               Log.d(TAG, "onCharacteristicRead: 收到BLE设备发送的数据 characteristic="+characteristic.getValue().length);
-                           }
-
-                           @Override
-                           public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                               super.onCharacteristicWrite(gatt, characteristic, status);
-                               Log.d(TAG, "onCharacteristicWrite: ");
-                           }
-                       });
+                //判断是否该设备已经搜索到
+                boolean ifFindDevie = false;
+                if (deviceList.size() == 0) {
+                    Log.d(TAG, "onReceive: 初次添加蓝牙设备到集合1");
+                    deviceList.add(device);
+                    //   RCAdapter adapter = (RCAdapter) recyclerView.getAdapter();
+                    if (rcAdapter != null) {
+                        rcAdapter.setmDatas(deviceList);
+                        rcAdapter.notifyDataSetChanged();//刷新list
+                    }
                 }
-                Log.d(TAG, "run: scanning...name=" + deviceName + " mac=" + deviceUuid);
+                for (int i = 0; i < deviceList.size(); i++) {//去重
+                    if (deviceList.get(i).getAddress().equals(deviceHardwareAddress)) {
+                        ifFindDevie = true;
+                    }
+                    if (i == deviceList.size() - 1 && !ifFindDevie) {//没有发现过的设备添加到list
+                        deviceList.add(device);
+                        Log.d(TAG, "onReceive: 新设备添加到list devicename=" + deviceName + " size=" + deviceList.size());
+                        //  RCAdapter adapter = (RCAdapter) recyclerView.getAdapter();
+                        rcAdapter.setmDatas(deviceList);
+                        rcAdapter.notifyDataSetChanged();
+                    }
+                }
             }
         }
     };
+
+
+
 
 //    private ScanCallback scanCallback = new ScanCallback() {
 //        @Override
@@ -137,8 +190,18 @@ public class MainActivity extends AppCompatActivity {
 //        }
 //    };
 
+
     @Override
-    public void onActivityReenter(int resultCode, Intent data) {
-        super.onActivityReenter(resultCode, data);
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1) {//请求开启蓝牙的回调结果
+            if (resultCode == Activity.RESULT_OK) {//用户允许打开蓝牙
+                Toast.makeText(MainActivity.this, "允许打开蓝牙", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "onActivityResult:用户允许打开蓝牙 ");
+            } else if (resultCode == Activity.RESULT_CANCELED) {//打开蓝牙失败或者用户拒绝打开蓝牙
+                Toast.makeText(MainActivity.this, "拒绝打开蓝牙", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "onActivityResult: 2222222222");
+            }
+        }
     }
 }
