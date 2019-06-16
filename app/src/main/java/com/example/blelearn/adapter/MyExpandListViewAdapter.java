@@ -26,7 +26,7 @@ public class MyExpandListViewAdapter extends BaseExpandableListAdapter {
     private static final String TAG = "MyExpandListViewAdapter";
     private List<String> groups = new ArrayList<>();
 
-    private List<List<String>> children = new ArrayList<>();
+    private List<List<BluetoothGattCharacteristic>> children = new ArrayList<>();
 
     public List<String> getGroups() {
         return groups;
@@ -36,11 +36,11 @@ public class MyExpandListViewAdapter extends BaseExpandableListAdapter {
         this.groups = groups;
     }
 
-    public List<List<String>> getChildren() {
+    public List<List<BluetoothGattCharacteristic>> getChildren() {
         return children;
     }
 
-    public void setChildren(List<List<String>> children) {
+    public void setChildren(List<List<BluetoothGattCharacteristic>> children) {
         this.children = children;
     }
 
@@ -69,53 +69,63 @@ public class MyExpandListViewAdapter extends BaseExpandableListAdapter {
 //    public void setChildren(String[][] children) {
 //        this.children = children;
 //    }
-    public void updataMyData(List<String> groups, List<List<String>> children) {
+    public void updataMyData(List<String> groups, List<List<BluetoothGattCharacteristic>> children) {
         this.groups.clear();
         this.children.clear();
+        notifyDataSetChanged();
         this.groups.addAll(groups);
         this.children.addAll(children);
         notifyDataSetChanged();
+     //   notifyDataSetInvalidated();
     }
 
     @Override
     public int getGroupCount() {
+        Log.d(TAG, "getGroupCount: ");
         return groups.size();
     }
 
     @Override
     public int getChildrenCount(int groupPosition) {
+        Log.d(TAG, "getChildrenCount: ");
         return children.get(groupPosition).size();
     }
 
     @Override
     public Object getGroup(int groupPosition) {
+        Log.d(TAG, "getGroup: ");
         return groups.get(groupPosition);
         //  return groups[groupPosition];
     }
 
     @Override
     public Object getChild(int groupPosition, int childPosition) {
+        Log.d(TAG, "getChild: ");
         return children.get(groupPosition).get(childPosition);
         //   return children[groupPosition][childPosition];
     }
 
     @Override
     public long getGroupId(int groupPosition) {
+        Log.d(TAG, "getGroupId: ");
         return groupPosition;
     }
 
     @Override
     public long getChildId(int groupPosition, int childPosition) {
+        Log.d(TAG, "getChildId: ");
         return childPosition;
     }
 
     @Override
     public boolean hasStableIds() {
-        return true;
+        Log.d(TAG, "hasStableIds: ");
+        return false;
     }
 
     @Override
     public View getGroupView(int groupPosition, boolean isExpanded, View convertView, ViewGroup parent) {
+        Log.d(TAG, "getGroupView: ");
         GroupViewHolder groupViewHolder;
         if (convertView == null) {
             convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_expand_group, parent, false);
@@ -137,16 +147,19 @@ public class MyExpandListViewAdapter extends BaseExpandableListAdapter {
             convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_expand_child, parent, false);
             childViewHolder = new ChildViewHolder();
             childViewHolder.tvTitle = (TextView) convertView.findViewById(R.id.label_expand_child);
+            childViewHolder.bleDeviceProperties = (TextView) convertView.findViewById(R.id.label_expand_child_bleDeviceProperties);
             convertView.setTag(childViewHolder);
         } else {
             childViewHolder = (ChildViewHolder) convertView.getTag();
         }
-        childViewHolder.tvTitle.setText(children.get(groupPosition).get(childPosition));
+        childViewHolder.tvTitle.setText("UUID:"+children.get(groupPosition).get(childPosition).getUuid());
+        childViewHolder.bleDeviceProperties.setText("Properties:"+children.get(groupPosition).get(childPosition).getUuid());
         return convertView;
     }
 
     @Override
     public boolean isChildSelectable(int groupPosition, int childPosition) {
+        Log.d(TAG, "isChildSelectable: ");
         return true;
     }
 
@@ -156,5 +169,6 @@ public class MyExpandListViewAdapter extends BaseExpandableListAdapter {
 
     static class ChildViewHolder {
         TextView tvTitle;
+        TextView bleDeviceProperties;
     }
 }
