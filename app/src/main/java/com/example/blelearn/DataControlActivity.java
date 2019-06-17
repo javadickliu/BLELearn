@@ -116,7 +116,7 @@ public class DataControlActivity extends AppCompatActivity {
             super.onServicesDiscovered(gatt, status);
             if (status == BluetoothGatt.GATT_SUCCESS) {//发现Service且连接成功
 
-                initServiceAndChara(gatt);
+             //   initServiceAndChara(gatt);
                 //=================已经蓝牙设备UUID的基础上往蓝牙设备写数据===
                 BluetoothGattCharacteristic characteristic = gatt.getService(UUID_SERVICE).getCharacteristic(UUID_CHARACTERISTIC_WRITE);
                 BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_NOTIFY);
@@ -202,53 +202,87 @@ public class DataControlActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 判断Service和Characteristic的类型 读写
-     */
-    private void initServiceAndChara(BluetoothGatt mBluetoothGatt){
-        UUID read_UUID_chara;
-        UUID read_UUID_service;
-        UUID write_UUID_chara;
-        UUID write_UUID_service;
-        UUID notify_UUID_chara;
-        UUID notify_UUID_service;
-        UUID indicate_UUID_chara;
-        UUID indicate_UUID_service;
-        List<BluetoothGattService> bluetoothGattServices= mBluetoothGatt.getServices();
-        for (BluetoothGattService bluetoothGattService:bluetoothGattServices){
-            List<BluetoothGattCharacteristic> characteristics=bluetoothGattService.getCharacteristics();
-            for (BluetoothGattCharacteristic characteristic:characteristics){
-                int charaProp = characteristic.getProperties();
-                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-                    read_UUID_chara=characteristic.getUuid();
-                    read_UUID_service=bluetoothGattService.getUuid();
-                    Log.d(TAG,"read_chara="+read_UUID_chara+"----read_service="+read_UUID_service);
-                }
-                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE) > 0) {
-                    write_UUID_chara=characteristic.getUuid();
-                    write_UUID_service=bluetoothGattService.getUuid();
-                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
-                }
-                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) > 0) {
-                    write_UUID_chara=characteristic.getUuid();
-                    write_UUID_service=bluetoothGattService.getUuid();
-                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
+//    /**
+//     * 判断Service和Characteristic的类型 读写
+//     */
+//    public static void initServiceAndChara(int intProperties) {
+//        if ((intProperties & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+//            read_UUID_chara = characteristic.getUuid();
+//            read_UUID_service = bluetoothGattService.getUuid();
+//            Log.d(TAG, "read_chara=" + read_UUID_chara + "----read_service=" + read_UUID_service);
+//        }
+//        if ((intProperties & BluetoothGattCharacteristic.PROPERTY_WRITE) > 0) {
+//            write_UUID_chara = characteristic.getUuid();
+//            write_UUID_service = bluetoothGattService.getUuid();
+//            Log.d(TAG, "write_chara=" + write_UUID_chara + "----write_service=" + write_UUID_service);
+//        }
+//        if ((intProperties & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) > 0) {
+//            write_UUID_chara = characteristic.getUuid();
+//            write_UUID_service = bluetoothGattService.getUuid();
+//            Log.d(TAG, "write_chara=" + write_UUID_chara + "----write_service=" + write_UUID_service);
+//
+//        }
+//        if ((intProperties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+//            notify_UUID_chara = characteristic.getUuid();
+//            notify_UUID_service = bluetoothGattService.getUuid();
+//            Log.d(TAG, "notify_chara=" + notify_UUID_chara + "----notify_service=" + notify_UUID_service);
+//        }
+//        if ((intProperties & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
+//            indicate_UUID_chara = characteristic.getUuid();
+//            indicate_UUID_service = bluetoothGattService.getUuid();
+//            Log.d(TAG, "indicate_chara=" + indicate_UUID_chara + "----indicate_service=" + indicate_UUID_service);
+//
+//        }
+//    }
 
-                }
-                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-                    notify_UUID_chara=characteristic.getUuid();
-                    notify_UUID_service=bluetoothGattService.getUuid();
-                    Log.d(TAG,"notify_chara="+notify_UUID_chara+"----notify_service="+notify_UUID_service);
-                }
-                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
-                    indicate_UUID_chara=characteristic.getUuid();
-                    indicate_UUID_service=bluetoothGattService.getUuid();
-                    Log.d(TAG,"indicate_chara="+indicate_UUID_chara+"----indicate_service="+indicate_UUID_service);
 
-                }
-            }
-        }
-    }
+    //    /**
+//     * 判断Service和Characteristic的类型 读写
+//     */
+//    private void initServiceAndChara(BluetoothGatt mBluetoothGatt){
+//        UUID read_UUID_chara;
+//        UUID read_UUID_service;
+//        UUID write_UUID_chara;
+//        UUID write_UUID_service;
+//        UUID notify_UUID_chara;
+//        UUID notify_UUID_service;
+//        UUID indicate_UUID_chara;
+//        UUID indicate_UUID_service;
+//        List<BluetoothGattService> bluetoothGattServices= mBluetoothGatt.getServices();
+//        for (BluetoothGattService bluetoothGattService:bluetoothGattServices){
+//            List<BluetoothGattCharacteristic> characteristics=bluetoothGattService.getCharacteristics();
+//            for (BluetoothGattCharacteristic characteristic:characteristics){
+//                int charaProp = characteristic.getProperties();
+//                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+//                    read_UUID_chara=characteristic.getUuid();
+//                    read_UUID_service=bluetoothGattService.getUuid();
+//                    Log.d(TAG,"read_chara="+read_UUID_chara+"----read_service="+read_UUID_service);
+//                }
+//                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE) > 0) {
+//                    write_UUID_chara=characteristic.getUuid();
+//                    write_UUID_service=bluetoothGattService.getUuid();
+//                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
+//                }
+//                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) > 0) {
+//                    write_UUID_chara=characteristic.getUuid();
+//                    write_UUID_service=bluetoothGattService.getUuid();
+//                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
+//
+//                }
+//                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+//                    notify_UUID_chara=characteristic.getUuid();
+//                    notify_UUID_service=bluetoothGattService.getUuid();
+//                    Log.d(TAG,"notify_chara="+notify_UUID_chara+"----notify_service="+notify_UUID_service);
+//                }
+//                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
+//                    indicate_UUID_chara=characteristic.getUuid();
+//                    indicate_UUID_service=bluetoothGattService.getUuid();
+//                    Log.d(TAG,"indicate_chara="+indicate_UUID_chara+"----indicate_service="+indicate_UUID_service);
+//
+//                }
+//            }
+//        }
+//    }
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy: ");
