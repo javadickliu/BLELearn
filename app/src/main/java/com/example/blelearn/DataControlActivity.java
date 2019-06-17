@@ -22,6 +22,7 @@ import com.example.blelearn.adapter.MyExpandListViewAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class DataControlActivity extends AppCompatActivity {
     private static final String TAG = "DataControlActivity";
@@ -50,27 +51,6 @@ public class DataControlActivity extends AppCompatActivity {
         expandableListView = (ExpandableListView) findViewById(R.id.datacontrolactivity_bleservice_expandlv);
         myExpandListViewAdapter = new MyExpandListViewAdapter();
         expandableListView.setAdapter(myExpandListViewAdapter);
-//        List<String> groupList=new ArrayList<>();
-//        groupList.add("aaa");
-//        groupList.add("bbb");
-//        groupList.add("ccc");
-//        myExpandListViewAdapter.setGroups(groupList);
-//        List<List<String>> childList=new ArrayList<>();
-//        List<String> groupList1=new ArrayList<>();
-//        groupList1.add("111");
-//        List<String> groupList2=new ArrayList<>();
-//        groupList2.add("111");
-//        groupList2.add("222");
-//        List<String> groupList3=new ArrayList<>();
-//        groupList3.add("111");
-//        groupList3.add("222");
-//        groupList3.add("333");
-//        childList.add(groupList1);
-//        childList.add(groupList2);
-//        childList.add(groupList3);
-      //  myExpandListViewAdapter.setChildren(childList);
-
-      //  myExpandListViewAdapter.updataMyData(groupList,childList);
         Log.d(TAG, "onCreate: myExpandListViewAdapter=" + myExpandListViewAdapter);
         BluetoothGatt bluetoothGatt = bluetoothDevice.connectGatt(DataControlActivity.this, false, new MyBluetoothGattCallback());
     }
@@ -87,24 +67,26 @@ public class DataControlActivity extends AppCompatActivity {
         }
         return result;
     }
+
     private List<String> temp1;
     private List<List<BluetoothGattCharacteristic>> temp2;
-    private Handler updataUIHandler=new Handler(Looper.getMainLooper()){
+    private Handler updataUIHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            Log.d(TAG, "handleMessage: updataui !!!!!!!!!! thread2222="+(Looper.getMainLooper()==Looper.myLooper()));
-              if(msg.what==0){//刷新service
-                  myExpandListViewAdapter.updataMyData(temp1,temp2);
-              }else if(msg.what==1){
-                  deviceStatusTv.setText("Status:" + "已连接");
-              }else if(msg.what==2){
-                  deviceStatusTv.setText("Status:" + "断开连接");
-              }
+            Log.d(TAG, "handleMessage: updataui !!!!!!!!!! thread2222=" + (Looper.getMainLooper() == Looper.myLooper()));
+            if (msg.what == 0) {//刷新service
+                myExpandListViewAdapter.updataMyData(temp1, temp2);
+            } else if (msg.what == 1) {
+                deviceStatusTv.setText("Status:" + "已连接");
+            } else if (msg.what == 2) {
+                deviceStatusTv.setText("Status:" + "断开连接");
+            }
 
 
         }
     };
+
     /**
      * 连接BLE设备结果
      */
@@ -120,38 +102,39 @@ public class DataControlActivity extends AppCompatActivity {
             super.onConnectionStateChange(gatt, status, newState);
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.d(TAG, "Attempting to start service discovery: 连接GATT成功" + gatt.discoverServices());
-           //     deviceStatusTv.setText("Status:" + "已连接");
-                updataUIHandler.sendEmptyMessageDelayed(1,0);
+                updataUIHandler.sendEmptyMessageDelayed(1, 0);
+
+
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-        //        deviceStatusTv.setText("Status:" + "未连接");
-                updataUIHandler.sendEmptyMessageDelayed(2,0);
+                updataUIHandler.sendEmptyMessageDelayed(2, 0);
                 Log.d(TAG, "Disconnected from GATT server.");
             }
         }
 
         @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {//BLE设备的Service连接成功,gatt.discoverServices()
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {//BLE设备的Service连接成功,调用这个回调才表示蓝牙真正建立连接,gatt.discoverServices()
             super.onServicesDiscovered(gatt, status);
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {//发现Service且连接成功
 
-
+                initServiceAndChara(gatt);
                 //=================已经蓝牙设备UUID的基础上往蓝牙设备写数据===
-                byte[] byter = new byte[1];
-                byter[0] = 0x11;
                 BluetoothGattCharacteristic characteristic = gatt.getService(UUID_SERVICE).getCharacteristic(UUID_CHARACTERISTIC_WRITE);
                 BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_NOTIFY);
 //                // descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);//和通知类似,但服务端不主动发数据,只指示客户端读取数据
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                gatt.setCharacteristicNotification(characteristic,true);
-
-                characteristic.setValue(byter);
-                gatt.writeDescriptor(descriptor);//todo 两个同时调用只能生效一个？
-            //    gatt.writeCharacteristic(characteristic);
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);//使能Serivce的某个Characteristic的某个descriptor 才能收到回调
+                gatt.setCharacteristicNotification(characteristic, true);//设置读
+                gatt.writeDescriptor(descriptor);
+                characteristic.setValue(HexUtil.hexStringToBytes("lala"));
+                //todo  writeDescriptor和writeCharacteristic两个同时调用只能生效一个不能同时调用
+                try {
+                    Thread.sleep(1000);//延时
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                gatt.writeCharacteristic(characteristic);
 
                 //====================
-
                 Log.d(TAG, "onLeScan211: CuurentThread=" + (Looper.myLooper() == Looper.getMainLooper()));
-                Log.d(TAG, "onServicesDiscovered: myExpandListViewAdapter=" + myExpandListViewAdapter);
                 List<BluetoothGattService> bluetoothGattServices = gatt.getServices();
                 List<String> gorupList = new ArrayList<>();
                 List<List<BluetoothGattCharacteristic>> childList = new ArrayList<>();
@@ -174,9 +157,9 @@ public class DataControlActivity extends AppCompatActivity {
 //                        Log.d(TAG, "onServicesDiscovered: 33333  value=" + childList.get(i).get(j));
 //                    }
 //                }
-                temp1=gorupList;
-                temp2=childList;
-                updataUIHandler.sendEmptyMessageDelayed(0,0);
+                temp1 = gorupList;
+                temp2 = childList;
+                updataUIHandler.sendEmptyMessageDelayed(0, 0);
                 for (BluetoothGattService index : bluetoothGattServices) {
                     Log.d(TAG, "onServicesDiscovered: 服务连接成功 index=");
                 }
@@ -200,10 +183,10 @@ public class DataControlActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {//BLE服务端数据读取成功会回调;
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {//BLE服务端数据读取成功会回调;一般在此接收BLE设备的回调数据
             super.onCharacteristicChanged(gatt, characteristic);
             String valueStr = new String(characteristic.getValue());
-            Log.d(TAG, "onCharacteristicChanged: characteristic111111111111111111111111111="+valueStr);
+            Log.d(TAG, "onCharacteristicChanged: characteristic111111111111111111111111111=" + valueStr);
         }
 
         @Override
@@ -219,6 +202,53 @@ public class DataControlActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 判断Service和Characteristic的类型 读写
+     */
+    private void initServiceAndChara(BluetoothGatt mBluetoothGatt){
+        UUID read_UUID_chara;
+        UUID read_UUID_service;
+        UUID write_UUID_chara;
+        UUID write_UUID_service;
+        UUID notify_UUID_chara;
+        UUID notify_UUID_service;
+        UUID indicate_UUID_chara;
+        UUID indicate_UUID_service;
+        List<BluetoothGattService> bluetoothGattServices= mBluetoothGatt.getServices();
+        for (BluetoothGattService bluetoothGattService:bluetoothGattServices){
+            List<BluetoothGattCharacteristic> characteristics=bluetoothGattService.getCharacteristics();
+            for (BluetoothGattCharacteristic characteristic:characteristics){
+                int charaProp = characteristic.getProperties();
+                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+                    read_UUID_chara=characteristic.getUuid();
+                    read_UUID_service=bluetoothGattService.getUuid();
+                    Log.d(TAG,"read_chara="+read_UUID_chara+"----read_service="+read_UUID_service);
+                }
+                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE) > 0) {
+                    write_UUID_chara=characteristic.getUuid();
+                    write_UUID_service=bluetoothGattService.getUuid();
+                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
+                }
+                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) > 0) {
+                    write_UUID_chara=characteristic.getUuid();
+                    write_UUID_service=bluetoothGattService.getUuid();
+                    Log.d(TAG,"write_chara="+write_UUID_chara+"----write_service="+write_UUID_service);
+
+                }
+                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+                    notify_UUID_chara=characteristic.getUuid();
+                    notify_UUID_service=bluetoothGattService.getUuid();
+                    Log.d(TAG,"notify_chara="+notify_UUID_chara+"----notify_service="+notify_UUID_service);
+                }
+                if ((charaProp & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
+                    indicate_UUID_chara=characteristic.getUuid();
+                    indicate_UUID_service=bluetoothGattService.getUuid();
+                    Log.d(TAG,"indicate_chara="+indicate_UUID_chara+"----indicate_service="+indicate_UUID_service);
+
+                }
+            }
+        }
+    }
     @Override
     protected void onDestroy() {
         Log.d(TAG, "onDestroy: ");
